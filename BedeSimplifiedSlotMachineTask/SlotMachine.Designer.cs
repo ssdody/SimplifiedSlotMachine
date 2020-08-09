@@ -76,7 +76,7 @@
             // WinLabel
             // 
             this.WinLabel.AutoSize = true;
-            this.WinLabel.Location = new System.Drawing.Point(70, 450);
+            this.WinLabel.Location = new System.Drawing.Point(76, 450);
             this.WinLabel.Name = "WinLabel";
             this.WinLabel.Size = new System.Drawing.Size(29, 13);
             this.WinLabel.TabIndex = 10;
@@ -103,7 +103,7 @@
             // WinVal
             // 
             this.WinVal.AutoSize = true;
-            this.WinVal.Location = new System.Drawing.Point(118, 450);
+            this.WinVal.Location = new System.Drawing.Point(126, 450);
             this.WinVal.Name = "WinVal";
             this.WinVal.Size = new System.Drawing.Size(25, 13);
             this.WinVal.TabIndex = 14;
@@ -261,6 +261,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(552, 517);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.betNumericUpDown);

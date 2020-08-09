@@ -1,42 +1,45 @@
-﻿using BedeSimplifiedSlotMachine.Models.Contracts;
-using BedeSimplifiedSlotMachine.Models;
-using System;
-using System.Configuration;
-using System.Collections.Specialized;
-using System.Collections.Generic;
-using System.Windows.Forms;
-using System.Linq;
-using BedeSimplifiedSlotMachineTask.Models.Models;
-using BedeSimplifiedSlotMachineTask.Providers;
-using System.Drawing;
-using System.Resources;
-using System.Globalization;
-using System.Collections;
-using BedeSimplifiedSlotMachineTask.Providers.Constants;
-using BedeSimplifiedSlotMachine.Helpers;
-
-namespace BedeSimplifiedSlotMachineTask
+﻿namespace BedeSimplifiedSlotMachineTask
 {
+    using System;
+    using System.Linq;
+    using System.Drawing;
+    using System.Resources;
+    using System.Collections;
+    using System.Windows.Forms;
+    using System.Globalization;
+    using System.Collections.Generic;
+    using BedeSimplifiedSlotMachine.Helpers;
+    using BedeSimplifiedSlotMachineTask.Providers;
+    using BedeSimplifiedSlotMachineTask.Models.Enum;
+    using BedeSimplifiedSlotMachine.Models.Contracts;
+    using BedeSimplifiedSlotMachineTask.Models.Models;
+    using BedeSimplifiedSlotMachineTask.Providers.Constants;
+
     public partial class SlotMachine : Form
     {
-        private decimal Bet;
-        private decimal Credits;
-        private readonly Random randomProvider;
+        private decimal bet;
+        private decimal credits;
+        private readonly RandomNumberProvider randomProvider;
+        private readonly MatrixProvider matrixProvider;
+        private readonly SlotMachineItemsProvider slotMachineItemsProvider;
+
+
 
         public SlotMachine()
         {
             InitializeComponent();
 
-            this.randomProvider = new Random();
+            this.randomProvider = new RandomNumberProvider();
+            this.matrixProvider = new MatrixProvider();
+            this.slotMachineItemsProvider = new SlotMachineItemsProvider();
 
             var dialogResult = Prompt.ShowEnterCreditsDialog("Deposit amount", "Enter Deposit");
             SetCreditsAmount(dialogResult);
 
-            SetInitialSlotMachineImages();
-
+            SetDefaultSlotMachineImages();
         }
 
-        private void SetInitialSlotMachineImages()
+        private void SetDefaultSlotMachineImages()
         {
             var picBoxes = new Stack<PictureBox>(Controls.OfType<PictureBox>());
             foreach (var box in picBoxes)
@@ -47,12 +50,12 @@ namespace BedeSimplifiedSlotMachineTask
 
         private void SetCreditsAmount(decimal dialogResult)
         {
-            Credits = dialogResult;
+            credits = dialogResult;
 
             CreditsVal.Text = dialogResult.ToString();
         }
 
-        private void SetSlotMachineImages(ISlotMachineItem[,] matrix, PictureBox[,] pictureBoxMatrix)
+        private void FillSlotMachinePictireBoxesWithSlotMAchineItemsImages(ISlotMachineItem[,] matrix, PictureBox[,] pictureBoxMatrix)
         {
             ResourceSet resourceSet = Properties.Resources.ResourceManager.GetResourceSet(CultureInfo.CurrentCulture, false, true);
             var imageDictionary = new Dictionary<string, Bitmap>();
@@ -74,53 +77,20 @@ namespace BedeSimplifiedSlotMachineTask
 
         }
 
-        public PictureBox[,] GetPictureBoxMatrix(int rows, int cols)
-        {
-            var picBoxes = new Stack<PictureBox>(Controls.OfType<PictureBox>());
-            var picBoxMatrix = new PictureBox[4, 3];
-
-            for (int row = 0; row < 4; row++)
-            {
-                for (int col = 0; col < 3; col++)
-                {
-                    picBoxMatrix[row, col] = picBoxes.Pop();
-                }
-            }
-            return picBoxMatrix;
-        }
-
-        //public static string ShowDialog(string text, string caption)
+        //private PictureBox[,] GetPictureBoxMatrix(int rows, int cols)
         //{
-        //    Form prompt = new Form()
+        //    var picBoxes = new Stack<PictureBox>(Controls.OfType<PictureBox>().OrderByDescending(x => x.Name));
+        //    var picBoxMatrix = new PictureBox[MatrixSizeConstants.Rows, MatrixSizeConstants.Cols];
+
+        //    for (int row = 0; row < MatrixSizeConstants.Rows; row++)
         //    {
-        //        Width = 500,
-        //        Height = 150,
-        //        FormBorderStyle = FormBorderStyle.FixedDialog,
-        //        Text = caption,
-        //        StartPosition = FormStartPosition.CenterScreen
-        //    };
-
-        //    Label textLabel = new Label() { Left = 50, Top = 20, Text = text };
-
-        //    TextBox textBox = new TextBox() { Left = 50, Top = 50, Width = 200 };
-        //    textBox.KeyPress += TextBox_KeyPress;
-
-        //    Button confirmation = new Button() { Text = "Play", Left = 250, Width = 100, Top = 49, DialogResult = DialogResult.OK };
-        //    confirmation.Click += (sender, e) => { prompt.Close(); };
-
-        //    prompt.Controls.Add(textBox);
-        //    prompt.Controls.Add(confirmation);
-        //    prompt.Controls.Add(textLabel);
-        //    prompt.AcceptButton = confirmation;
-
-        //    prompt.ShowDialog();
-
-        //    if (prompt.DialogResult != DialogResult.OK)
-        //    {
-        //        Environment.Exit(1);
+        //        for (int col = 0; col < MatrixSizeConstants.Cols; col++)
+        //        {
+        //            picBoxMatrix[row, col] = picBoxes.Pop();
+        //        }
         //    }
 
-        //    return textBox.Text;
+        //    return picBoxMatrix;
         //}
 
         private static void TextBox_KeyPress(object sender, KeyPressEventArgs e)
@@ -133,52 +103,49 @@ namespace BedeSimplifiedSlotMachineTask
 
         private void SpinBtn_Click(object sender, EventArgs e)
         {
-            this.Bet = betNumericUpDown.Value;
+            this.bet = betNumericUpDown.Value;
 
-            this.Credits = Convert.ToDecimal(CreditsVal.Text);
+            this.credits = Convert.ToDecimal(CreditsVal.Text);
 
-            if (Bet <= this.Credits && Bet > 0)
+            if (bet <= this.credits && bet > 0)
             {
-                RemoveBetFromCredits(this.Credits, this.Bet);
+                RemoveBetFromCredits(this.credits, this.bet);
 
+                var slotMachineItems = this.slotMachineItemsProvider.GetSlotMachineItems();
+                var SlotMachineItemsArray = SlotMachineHelper.Shuffle(slotMachineItems);
 
-                var SlotMachineItemsArray = Shuffle(GetSlotMachineItems());
-                //var SlotMachineItemsArray = SlotMachineHelper.Shuffle(GetSlotMachineItems());
+                var slotMachineItemsMatrix = this.matrixProvider.GenerateMatrix(SlotMachineItemsArray, MatrixSizeConstants.Rows, MatrixSizeConstants.Cols);
+                var pictureBoxes = Controls.OfType<PictureBox>();
 
-                var matrix = GenerateMatrix(SlotMachineItemsArray);
-                //set images
-                var picBoxMatrix = GetPictureBoxMatrix(4, 3);
-                SetSlotMachineImages(matrix, picBoxMatrix);
-                // calc win
-                var winCoef = GetTotalWinningRowsCoefficient(matrix);
+                var picBoxMatrix = matrixProvider.GetPictureBoxMatrix(pictureBoxes, MatrixSizeConstants.Rows, MatrixSizeConstants.Cols);
+                FillSlotMachinePictireBoxesWithSlotMAchineItemsImages(slotMachineItemsMatrix, picBoxMatrix);
+
+                var winCoef = GetTotalWinningRowsCoefficient(slotMachineItemsMatrix);
                 if (winCoef > 0)
                 {
-                    //add credits
-                    var winAmount = AddCreditsToCreditAmount(winCoef);
-                    //write win message
-                    SetSpinResultText(SpinResult.Win, winAmount);
+                    var winAmount = AddCreditsToCreditsAmount(this.bet, winCoef);
+
+                    SetSpinResultText(SpinResultText.Win, winAmount);
                 }
                 else
                 {
-                    //RemoveBetFromCredits(this.Credits, this.Bet);
-                    //write loss message
-                    SetSpinResultText(SpinResult.Loss, Bet);
+                    SetSpinResultText(SpinResultText.Loss, bet);
                 }
             }
-            else if (this.Credits <= 0)
+            else if (this.credits <= 0)
             {
                 decimal dialogResult = Prompt.ShowEnterCreditsDialog("You don't have enough credits. Please add more to continue playing", "Not enough credits");
 
                 SetCreditsAmount(dialogResult);
             }
-            else if (this.Bet > this.Credits)
+            else if (this.bet > this.credits)
             {
                 Prompt.ShowInformationDialog("You're bet is bigger than your credits. Please lower your bet to continue playing", "Bet bigger than credits");
 
             }
         }
 
-        private void SetSpinResultText(SpinResult result, decimal credits)
+        private void SetSpinResultText(SpinResultText result, decimal credits)
         {
             WinLabel.Text = result.ToString();
             WinVal.Text = credits.ToString();
@@ -186,17 +153,17 @@ namespace BedeSimplifiedSlotMachineTask
 
         private void RemoveBetFromCredits(decimal creditsAmount, decimal betAmount)
         {
-            this.Credits = creditsAmount - betAmount;
-            CreditsVal.Text = Credits.ToString();
+            this.credits = creditsAmount - betAmount;
+            CreditsVal.Text = credits.ToString();
         }
 
-        private decimal AddCreditsToCreditAmount(decimal winCoef)
+        private decimal AddCreditsToCreditsAmount(decimal bet, decimal winCoef)
         {
-            decimal winAmount = Math.Round((this.Bet * winCoef), 2);
-            this.Credits += winAmount;
+            decimal winAmount = Math.Round((bet * winCoef), 2);
+            this.credits += winAmount;
 
-            //WinLabel.Text = "Win";
-            CreditsVal.Text = Math.Round(this.Credits, 2).ToString();
+            CreditsVal.Text = Math.Round(this.credits, 2).ToString();
+
             return winAmount;
         }
 
@@ -241,7 +208,7 @@ namespace BedeSimplifiedSlotMachineTask
 
         private void betNumericUpDown_ValueChanged(object sender, EventArgs e)
         {
-            this.Bet = betNumericUpDown.Value;
+            this.bet = betNumericUpDown.Value;
         }
 
         public void SetMatrixItemsImages()
@@ -249,64 +216,64 @@ namespace BedeSimplifiedSlotMachineTask
 
         }
 
-        public ISlotMachineItem[,] GenerateMatrix(IList<ISlotMachineItem> items)
-        {
-            var slotMachiteItems = items;
+        //public ISlotMachineItem[,] GenerateMatrix(IList<ISlotMachineItem> items)
+        //{
+        //    var slotMachiteItems = items;
 
-            int rows = MatrixSizeConstants.Rows;
-            int cols = MatrixSizeConstants.Cols;
+        //    int rows = MatrixSizeConstants.Rows;
+        //    int cols = MatrixSizeConstants.Cols;
 
-            var matrix = new ISlotMachineItem[rows, cols];
-            for (int row = 0; row < rows; row++)
-            {
-                for (int col = 0; col < cols; col++)
-                {
-                    var randomNumber = GetRandomNumber(0, 100);
+        //    var matrix = new ISlotMachineItem[rows, cols];
+        //    for (int row = 0; row < rows; row++)
+        //    {
+        //        for (int col = 0; col < cols; col++)
+        //        {
+        //            var randomNumber = GetRandomNumber(0, 100);
 
-                    matrix[row, col] = slotMachiteItems[randomNumber];
-                }
-            }
+        //            matrix[row, col] = slotMachiteItems[randomNumber];
+        //        }
+        //    }
 
-            return matrix;
-        }
+        //    return matrix;
+        //}
 
-        int GetRandomNumber(int minRange, int maxRange)
-        {
-            return this.randomProvider.Next(minRange, maxRange);
-        }
+        //int GetRandomNumber(int minRange, int maxRange)
+        //{
+        //    return this.randomProvider.Next(minRange, maxRange);
+        //}
 
-        List<ISlotMachineItem> GetSlotMachineItems()
-        {
-            var itemsArray = new List<ISlotMachineItem>();
+        //List<ISlotMachineItem> GetSlotMachineItems()
+        //{
+        //    var itemsArray = new List<ISlotMachineItem>();
 
-            var apple = new SlotMachineItem("Apple", 0.4m, 45, null, false, "a");
-            var banana = new SlotMachineItem("Banana", 0.6m, 35, null, false, "b");
-            var pineapple = new SlotMachineItem("Pineapple", 0.8m, 15, null, false, "p");
-            var wildcard = new SlotMachineItem("Wildcard", 0, 5, null, true, "w");
+        //    var apple = new SlotMachineItem("Apple", 0.4m, 45, null, false, "a");
+        //    var banana = new SlotMachineItem("Banana", 0.6m, 35, null, false, "b");
+        //    var pineapple = new SlotMachineItem("Pineapple", 0.8m, 15, null, false, "p");
+        //    var wildcard = new SlotMachineItem("Wildcard", 0, 5, null, true, "w");
 
-            var slotMachineItems = new List<ISlotMachineItem>
-            {
-                apple,
-                banana,
-                pineapple,
-                wildcard
-            };
+        //    var slotMachineItems = new List<ISlotMachineItem>
+        //    {
+        //        apple,
+        //        banana,
+        //        pineapple,
+        //        wildcard
+        //    };
 
 
-            foreach (var item in slotMachineItems)
-            {
-                var imageProvider = new ImageProvider();
+        //    foreach (var item in slotMachineItems)
+        //    {
+        //        var imageProvider = new ImageProvider();
 
-                item.Image = imageProvider.GetImageLocation(item.Symbol);
-                for (int i = 0; i < item.ProbabilityPercent; i++)
-                {
-                    itemsArray.Add(item);
-                }
+        //        item.Image = imageProvider.GetImageLocation(item.Symbol);
+        //        for (int i = 0; i < item.ProbabilityPercent; i++)
+        //        {
+        //            itemsArray.Add(item);
+        //        }
 
-            }
+        //    }
 
-            return itemsArray;
-        }
+        //    return itemsArray;
+        //}
 
         private static Random random = new Random();
 
@@ -324,10 +291,5 @@ namespace BedeSimplifiedSlotMachineTask
             return list;
         }
 
-        private enum SpinResult
-        {
-            Win,
-            Loss
-        }
     }
 }

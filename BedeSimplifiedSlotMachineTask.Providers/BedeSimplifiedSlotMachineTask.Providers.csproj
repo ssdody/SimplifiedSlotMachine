@@ -47,13 +47,22 @@
     <Compile Include="Contracts\IImageProvider.cs" />
     <Compile Include="DialogProvider.cs" />
     <Compile Include="ImageProvider.cs" />
+    <Compile Include="MatrixProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RandomNumberProvider.cs" />
+    <Compile Include="SlotMachineItemsProvider.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Images\a.jpg" />
     <Content Include="Images\b.jpg" />
     <Content Include="Images\p.jpg" />
     <Content Include="Images\w.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BedeSimplifiedSlotMachineTask.Models\BedeSimplifiedSlotMachineTask.Models.csproj">
+      <Project>{0BF8D411-630C-4F31-AF49-49F6ABC9E381}</Project>
+      <Name>BedeSimplifiedSlotMachineTask.Models</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
